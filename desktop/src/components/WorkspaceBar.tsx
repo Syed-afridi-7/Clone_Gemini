@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
 import { FolderOpen, Folder, ChevronRight } from "lucide-react";
 import { useChatStore } from "../store/chatStore";
+import { isTauriEnvironment } from "../utils/tauri";
 
 export function WorkspaceBar() {
   const { workspacePath, setWorkspacePath } = useChatStore();
@@ -12,14 +11,27 @@ export function WorkspaceBar() {
     if (isPickerOpen) return;
     setIsPickerOpen(true);
     try {
-      const selected = await open({
-        directory: true,
-        multiple: false,
-        title: "Select Workspace Folder",
-      });
-      if (typeof selected === "string" && selected.trim()) {
-        setWorkspacePath(selected);
-        await invoke("set_workspace", { path: selected });
+      if (isTauriEnvironment()) {
+        const { open } = await import("@tauri-apps/plugin-dialog");
+        const { invoke } = await import("@tauri-apps/api/core");
+        const selected = await open({
+          directory: true,
+          multiple: false,
+          title: "Select Workspace Folder",
+        });
+        if (typeof selected === "string" && selected.trim()) {
+          setWorkspacePath(selected);
+          await invoke("set_workspace", { path: selected });
+        }
+      } else {
+        // Fallback for testing in standard web browser
+        const entered = prompt(
+          "Enter your local project workspace directory path (e.g. E:\\gemini-clone):",
+          workspacePath || "E:\\gemini-clone"
+        );
+        if (entered && entered.trim()) {
+          setWorkspacePath(entered.trim());
+        }
       }
     } catch (err) {
       console.error("Folder picker error:", err);

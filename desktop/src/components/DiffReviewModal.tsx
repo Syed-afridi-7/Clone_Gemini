@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { Check, X, FileCode, Terminal, AlertTriangle } from "lucide-react";
 import { useChatStore } from "../store/chatStore";
+import { isTauriEnvironment } from "../utils/tauri";
 import * as Diff2Html from "diff2html";
 import "diff2html/bundles/css/diff2html.min.css";
 
@@ -11,10 +11,13 @@ export function DiffReviewModal() {
   const handleDecision = async (approved: boolean) => {
     if (!pendingApproval) return;
     try {
-      await invoke("approve_permission", {
-        requestId: pendingApproval.requestId,
-        approved,
-      });
+      if (isTauriEnvironment()) {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("approve_permission", {
+          requestId: pendingApproval.requestId,
+          approved,
+        });
+      }
     } catch (err) {
       console.error("Failed to submit approval decision:", err);
     } finally {

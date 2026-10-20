@@ -3,6 +3,7 @@ import { MessageBubble } from "./MessageBubble";
 import { PromptBar } from "./PromptBar";
 import { useChatStore } from "../store/chatStore";
 import { useAgentEvents } from "../hooks/useAgentEvents";
+import { isTauriEnvironment } from "../utils/tauri";
 import { Code2, Sparkles, Terminal } from "lucide-react";
 
 export function ChatArea() {
@@ -24,9 +25,16 @@ export function ChatArea() {
     addUserMessage(prompt);
     const assistantId = addAssistantMessage();
     startAgentTurn(assistantId);
-    import("@tauri-apps/api/core").then(({ invoke }) => {
-      void invoke("send_agent_prompt", { prompt });
-    });
+
+    if (isTauriEnvironment()) {
+      import("@tauri-apps/api/core").then(({ invoke }) => {
+        void invoke("send_agent_prompt", { prompt });
+      });
+    } else {
+      alert(
+        "Running in Web Browser preview mode. To execute local file edits and shell commands with the Rust engine, launch the desktop app with: npm run tauri dev"
+      );
+    }
   };
 
   return (

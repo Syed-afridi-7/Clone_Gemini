@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useChatStore, ToolEvent, PendingApproval } from "../store/chatStore";
+import { isTauriEnvironment } from "../utils/tauri";
 
 interface TokenPayload {
   token: string;
@@ -53,6 +54,11 @@ export function useAgentEvents() {
   };
 
   useEffect(() => {
+    if (!isTauriEnvironment()) {
+      console.info("[useAgentEvents] Running in web browser. Tauri IPC listeners bypassed.");
+      return;
+    }
+
     const unlisteners: Array<() => void> = [];
 
     async function setupListeners() {

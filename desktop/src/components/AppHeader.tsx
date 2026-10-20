@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { ChevronDown, Wifi, WifiOff } from "lucide-react";
 import { GeminiSparkle } from "./GeminiSparkle";
-import { useChatStore } from "../store/chatStore";
+import { useChatStore, OllamaModel } from "../store/chatStore";
+import { isTauriEnvironment } from "../utils/tauri";
 
 interface OllamaTagsResponse {
   models: Array<{
@@ -30,8 +30,18 @@ export function AppHeader() {
     async function loadModels() {
       setModelsLoading(true);
       try {
-        const response = await invoke<OllamaTagsResponse>("list_ollama_models");
-        const models = response.models ?? [];
+        let models: OllamaModel[] = [];
+        if (isTauriEnvironment()) {
+          const { invoke } = await import("@tauri-apps/api/core");
+          const response = await invoke<OllamaTagsResponse>("list_ollama_models");
+          models = response.models ?? [];
+        } else {
+          // In web browser fallback, connect to local Ollama directly
+          const res = await fetch("http://localhost:11434/api/tags");
+          const data: OllamaTagsResponse = await res.json();
+          models = data.models ?? [];
+        }
+
         setAvailableModels(models);
         setOllamaOnline(true);
         if (models.length > 0 && !selectedModel) {

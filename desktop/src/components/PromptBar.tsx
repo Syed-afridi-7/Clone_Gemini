@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { ArrowUp, Square } from "lucide-react";
 import { useChatStore } from "../store/chatStore";
+import { isTauriEnvironment } from "../utils/tauri";
 
 interface PromptBarProps {
   onStartTurn: (assistantId: string) => void;
@@ -43,7 +43,14 @@ export function PromptBar({ onStartTurn }: PromptBarProps) {
     onStartTurn(assistantId);
 
     try {
-      await invoke("send_agent_prompt", { prompt: trimmed });
+      if (isTauriEnvironment()) {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("send_agent_prompt", { prompt: trimmed });
+      } else {
+        alert(
+          "Running in Web Browser preview mode. To execute local file edits and shell commands with the Rust engine, launch the desktop app with: npm run tauri dev"
+        );
+      }
     } catch (err) {
       console.error("Failed to send prompt:", err);
     }
