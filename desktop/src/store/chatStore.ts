@@ -1,33 +1,39 @@
 import { create } from "zustand";
 
 export type MessageRole = "user" | "assistant";
+export type AppMode = "chat" | "cowork";
+
+export interface FileNode {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  children?: FileNode[];
+}
 
 export interface ToolEvent {
   id: string;
   toolName: string;
   status: "running" | "success" | "error";
-  detail: string; // e.g. "src/main.rs (45 lines)" or "echo Hello"
+  detail: string;
   timestamp: number;
 }
 
 export interface ChatMessage {
   id: string;
   role: MessageRole;
-  content: string;          // streamed text (may be partial while streaming)
-  toolEvents: ToolEvent[];  // tool chips shown in this message
-  isStreaming: boolean;     // true while agent is still generating
+  content: string;
+  toolEvents: ToolEvent[];
+  isStreaming: boolean;
   timestamp: number;
 }
 
 export interface PendingApproval {
   requestId: string;
   type: "diff" | "command";
-  // For diffs:
   filePath?: string;
   originalContent?: string;
   newContent?: string;
   unifiedDiff?: string;
-  // For commands:
   command?: string;
   cwd?: string;
 }
@@ -39,6 +45,15 @@ export interface OllamaModel {
 }
 
 interface ChatState {
+  // Navigation mode: standard general chat vs project cowork
+  activeMode: AppMode;
+  fileDrawerOpen: boolean;
+
+  // Project file tree (for Cowork mode)
+  projectTree: FileNode[];
+  treeLoading: boolean;
+  selectedFile: string | null;
+
   // Conversation
   messages: ChatMessage[];
 
@@ -57,6 +72,12 @@ interface ChatState {
   pendingApproval: PendingApproval | null;
 
   // Actions
+  setActiveMode: (mode: AppMode) => void;
+  setFileDrawerOpen: (open: boolean) => void;
+  toggleFileDrawer: () => void;
+  setProjectTree: (tree: FileNode[]) => void;
+  setTreeLoading: (loading: boolean) => void;
+  setSelectedFile: (file: string | null) => void;
   addUserMessage: (content: string) => string;
   addAssistantMessage: () => string;
   appendToken: (messageId: string, token: string) => void;
@@ -76,6 +97,12 @@ let messageIdCounter = 0;
 const nextId = () => `msg-${Date.now()}-${++messageIdCounter}`;
 
 export const useChatStore = create<ChatState>((set) => ({
+  activeMode: "cowork", // Default to Gemini Cowork
+  fileDrawerOpen: true,
+  projectTree: [],
+  treeLoading: false,
+  selectedFile: null,
+
   messages: [],
   agentRunning: false,
   workspacePath: "",
@@ -83,6 +110,13 @@ export const useChatStore = create<ChatState>((set) => ({
   availableModels: [],
   modelsLoading: false,
   pendingApproval: null,
+
+  setActiveMode: (mode) => set({ activeMode: mode }),
+  setFileDrawerOpen: (open) => set({ fileDrawerOpen: open }),
+  toggleFileDrawer: () => set((state) => ({ fileDrawerOpen: !state.fileDrawerOpen })),
+  setProjectTree: (tree) => set({ projectTree: tree }),
+  setTreeLoading: (loading) => set({ treeLoading: loading }),
+  setSelectedFile: (file) => set({ selectedFile: file }),
 
   addUserMessage: (content) => {
     const id = nextId();

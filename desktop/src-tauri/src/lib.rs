@@ -3,13 +3,22 @@ pub mod terminal;
 pub mod agent;
 pub mod mcp;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
 use agent::{AgentOrchestrator, ApprovalDecision, ApprovalManager, OllamaClient};
 use agent::ollama_client::OllamaTagsResponse;
 use mcp::McpClient;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileNode {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+    pub children: Option<Vec<FileNode>>,
+}
 
 pub struct AppState {
     pub workspace: Arc<Mutex<Option<PathBuf>>>,
@@ -36,6 +45,75 @@ fn set_workspace(state: State<'_, AppState>, path: String) -> Result<(), String>
 fn set_model(state: State<'_, AppState>, model: String) -> Result<(), String> {
     *state.model.lock().unwrap() = model;
     Ok(())
+}
+
+fn scan_dir_recursive(root: &Path, dir: &Path, depth: u32, max_depth: u32) -> Vec<FileNode> {
+    if depth > max_depth {
+        return Vec::new();
+    }
+
+    let entries = match std::fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => return Vec::new(),
+    };
+
+    let mut dir_entries: Vec<_> = entries.flatten().collect();
+    dir_entries.sort_by(|a, b| {
+        let a_is_dir = a.file_type().map(|t| t.is_dir()).unwrap_or(false);
+        let b_is_dir = b.file_type().map(|t| t.is_dir()).unwrap_or(false);
+        if a_is_dir != b_is_dir {
+            b_is_dir.cmp(&a_is_dir)
+        } else {
+            a.file_name().cmp(&b.file_name())
+        }
+    });
+
+    let mut nodes = Vec::new();
+    for entry in dir_entries {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().to_string();
+
+        if name.starts_with('.')
+            || name == "node_modules"
+            || name == "target"
+            || name == "dist"
+            || name == "build"
+            || name == ".dart_tool"
+        {
+            continue;
+        }
+
+        let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
+        let relative_path = path
+            .strip_prefix(root)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .replace('\\', "/");
+
+        let children = if is_dir {
+            Some(scan_dir_recursive(root, &path, depth + 1, max_depth))
+        } else {
+            None
+        };
+
+        nodes.push(FileNode {
+            name,
+            path: relative_path,
+            is_dir,
+            children,
+        });
+    }
+
+    nodes
+}
+
+#[tauri::command]
+fn get_directory_tree(state: State<'_, AppState>) -> Result<Vec<FileNode>, String> {
+    let workspace = state.workspace.lock().unwrap().clone();
+    let workspace_root = workspace.ok_or_else(|| "No workspace folder selected".to_string())?;
+
+    let tree = scan_dir_recursive(&workspace_root, &workspace_root, 0, 4);
+    Ok(tree)
 }
 
 #[tauri::command]
@@ -108,6 +186,7 @@ pub fn run() {
             list_ollama_models,
             set_workspace,
             set_model,
+            get_directory_tree,
             send_agent_prompt,
             approve_permission,
         ])

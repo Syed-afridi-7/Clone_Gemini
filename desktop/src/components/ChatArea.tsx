@@ -4,10 +4,11 @@ import { PromptBar } from "./PromptBar";
 import { useChatStore } from "../store/chatStore";
 import { useAgentEvents } from "../hooks/useAgentEvents";
 import { isTauriEnvironment } from "../utils/tauri";
-import { Code2, Sparkles, Terminal } from "lucide-react";
+import { Code2, Sparkles, Terminal, FileSearch, Zap, Bot } from "lucide-react";
 
 export function ChatArea() {
-  const { messages, workspacePath, addUserMessage, addAssistantMessage } = useChatStore();
+  const { messages, workspacePath, activeMode, addUserMessage, addAssistantMessage } =
+    useChatStore();
   const { startAgentTurn } = useAgentEvents();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -18,8 +19,8 @@ export function ChatArea() {
   }, [messages]);
 
   const handleSuggestion = (prompt: string) => {
-    if (!workspacePath) {
-      alert("Please select a workspace folder first!");
+    if (activeMode === "cowork" && !workspacePath) {
+      alert("Please select a workspace folder first using 'Open Project' in the file drawer!");
       return;
     }
     addUserMessage(prompt);
@@ -36,6 +37,10 @@ export function ChatArea() {
       );
     }
   };
+
+  const folderName = workspacePath
+    ? workspacePath.replace(/\\/g, "/").split("/").filter(Boolean).pop()
+    : null;
 
   return (
     <div
@@ -69,27 +74,92 @@ export function ChatArea() {
               paddingBottom: "4rem",
             }}
           >
-            <div style={{ textAlign: "center" }}>
-              <h1
-                style={{
-                  fontSize: "3.2rem",
-                  fontWeight: 500,
-                  background: "linear-gradient(135deg, #4285F4 0%, #9B72CB 50%, #D96570 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  fontFamily: "'Google Sans', sans-serif",
-                  letterSpacing: "-0.02em",
-                  marginBottom: "8px",
-                }}
-              >
-                Hello, Human.
-              </h1>
-              <p style={{ color: "#9AA0A6", fontSize: "1.1rem" }}>
-                What can I build, refactor, or test for you today?
-              </p>
-            </div>
+            {activeMode === "cowork" ? (
+              // Gemini Cowork Hero Screen
+              <div style={{ textAlign: "center", maxWidth: "680px" }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "4px 12px",
+                    borderRadius: "999px",
+                    backgroundColor: "rgba(155, 114, 203, 0.12)",
+                    border: "1px solid rgba(155, 114, 203, 0.3)",
+                    color: "#9B72CB",
+                    fontSize: "0.78rem",
+                    fontWeight: 600,
+                    marginBottom: "12px",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  <Zap size={13} style={{ color: "#D96570" }} />
+                  <span>GEMINI COWORK — LOCAL WORKSPACE CONTROL</span>
+                </div>
 
-            {/* Starter Suggestion Chips */}
+                <h1
+                  style={{
+                    fontSize: "2.8rem",
+                    fontWeight: 500,
+                    background: "linear-gradient(135deg, #4285F4 0%, #9B72CB 50%, #D96570 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    fontFamily: "'Google Sans', sans-serif",
+                    letterSpacing: "-0.02em",
+                    marginBottom: "8px",
+                  }}
+                >
+                  {folderName ? `Project: ${folderName}` : "Gemini Cowork"}
+                </h1>
+                <p style={{ color: "#9AA0A6", fontSize: "1rem", lineHeight: 1.5 }}>
+                  {folderName
+                    ? "Grounded in your local repository. Ask Gemini to inspect architecture, refactor code, apply diffs, and run terminal checks."
+                    : "Open a local project folder to start grounded agentic coding with interactive diffs."}
+                </p>
+              </div>
+            ) : (
+              // Standard Gemini Chat Hero Screen
+              <div style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "4px 12px",
+                    borderRadius: "999px",
+                    backgroundColor: "rgba(66, 133, 244, 0.12)",
+                    border: "1px solid rgba(66, 133, 244, 0.3)",
+                    color: "#4285F4",
+                    fontSize: "0.78rem",
+                    fontWeight: 600,
+                    marginBottom: "12px",
+                  }}
+                >
+                  <Bot size={13} />
+                  <span>GEMINI GENERAL CHAT</span>
+                </div>
+
+                <h1
+                  style={{
+                    fontSize: "3.2rem",
+                    fontWeight: 500,
+                    background: "linear-gradient(135deg, #4285F4 0%, #9B72CB 50%, #D96570 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    fontFamily: "'Google Sans', sans-serif",
+                    letterSpacing: "-0.02em",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Hello, Human.
+                </h1>
+                <p style={{ color: "#9AA0A6", fontSize: "1.1rem" }}>
+                  What can I help you explore, draft, or answer today?
+                </p>
+              </div>
+            )}
+
+            {/* Quick Action Chips */}
             <div
               style={{
                 display: "grid",
@@ -97,61 +167,114 @@ export function ChatArea() {
                 gap: "12px",
                 width: "100%",
                 maxWidth: "700px",
-                marginTop: "16px",
+                marginTop: "12px",
               }}
             >
-              {[
-                {
-                  icon: <Code2 size={16} className="text-blue-400" />,
-                  title: "Inspect workspace",
-                  prompt: "List all files in this project and give me a brief overview of the project structure.",
-                },
-                {
-                  icon: <Sparkles size={16} className="text-purple-400" />,
-                  title: "Find & fix bugs",
-                  prompt: "Search the codebase for TODOs or obvious syntax bugs and suggest improvements.",
-                },
-                {
-                  icon: <Terminal size={16} className="text-amber-400" />,
-                  title: "Run project tests",
-                  prompt: "Check what test framework this project uses and run its unit tests.",
-                },
-              ].map((card, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSuggestion(card.prompt)}
-                  style={{
-                    backgroundColor: "#1E1F20",
-                    border: "1px solid #3C4043",
-                    borderRadius: "14px",
-                    padding: "16px",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#282A2C";
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = "#9B72CB";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#1E1F20";
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = "#3C4043";
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    {card.icon}
-                    <span style={{ color: "#E3E3E3", fontWeight: 500, fontSize: "0.9rem" }}>
-                      {card.title}
-                    </span>
-                  </div>
-                  <span style={{ color: "#9AA0A6", fontSize: "0.78rem", lineHeight: 1.4 }}>
-                    {card.prompt}
-                  </span>
-                </button>
-              ))}
+              {activeMode === "cowork"
+                ? [
+                    {
+                      icon: <Code2 size={16} className="text-blue-400" />,
+                      title: "Inspect architecture",
+                      prompt: "Inspect the file structure of this workspace and summarize its architecture and key modules.",
+                    },
+                    {
+                      icon: <Terminal size={16} className="text-amber-400" />,
+                      title: "Run project tests",
+                      prompt: "Detect this project's test framework and run its test suite, explaining any failures.",
+                    },
+                    {
+                      icon: <FileSearch size={16} className="text-purple-400" />,
+                      title: "Find TODOs & bugs",
+                      prompt: "Search the codebase for TODOs, fixme comments, or potential logic bugs and propose fixes.",
+                    },
+                  ].map((card, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSuggestion(card.prompt)}
+                      style={{
+                        backgroundColor: "#1E1F20",
+                        border: "1px solid #3C4043",
+                        borderRadius: "14px",
+                        padding: "16px",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#282A2C";
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = "#9B72CB";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#1E1F20";
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = "#3C4043";
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {card.icon}
+                        <span style={{ color: "#E3E3E3", fontWeight: 500, fontSize: "0.9rem" }}>
+                          {card.title}
+                        </span>
+                      </div>
+                      <span style={{ color: "#9AA0A6", fontSize: "0.78rem", lineHeight: 1.4 }}>
+                        {card.prompt}
+                      </span>
+                    </button>
+                  ))
+                : [
+                    {
+                      icon: <Sparkles size={16} className="text-purple-400" />,
+                      title: "Brainstorm ideas",
+                      prompt: "Give me 5 creative ideas to build using Google Gemini and local AI agents.",
+                    },
+                    {
+                      icon: <Code2 size={16} className="text-blue-400" />,
+                      title: "Write an algorithm",
+                      prompt: "Write a high-performance LRU cache implementation with time-based eviction.",
+                    },
+                    {
+                      icon: <Terminal size={16} className="text-emerald-400" />,
+                      title: "Explain a concept",
+                      prompt: "Explain how large language models handle tool calling and JSON function execution.",
+                    },
+                  ].map((card, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSuggestion(card.prompt)}
+                      style={{
+                        backgroundColor: "#1E1F20",
+                        border: "1px solid #3C4043",
+                        borderRadius: "14px",
+                        padding: "16px",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#282A2C";
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = "#4285F4";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#1E1F20";
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = "#3C4043";
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {card.icon}
+                        <span style={{ color: "#E3E3E3", fontWeight: 500, fontSize: "0.9rem" }}>
+                          {card.title}
+                        </span>
+                      </div>
+                      <span style={{ color: "#9AA0A6", fontSize: "0.78rem", lineHeight: 1.4 }}>
+                        {card.prompt}
+                      </span>
+                    </button>
+                  ))}
             </div>
           </div>
         ) : (

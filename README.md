@@ -1,13 +1,18 @@
 # Clone_Gemini
 
-An open-source Google Gemini clone featuring a Flutter multi-platform UI and a desktop-first Tauri v2 agentic coding client powered by local Ollama LLMs.
+An open-source Google Gemini clone featuring a Flutter multi-platform UI and a desktop-first Tauri v2 agentic coding client powered by local Ollama LLMs with **Gemini Cowork** local workspace control.
 
 ---
 
 ## 🌟 Highlights
 
+- **Gemini Cowork & Code Workspace (`desktop/`)**: Borrowed from Claude Cowork / Claude Code and redesigned in Google Gemini's signature Material 3 style:
+  - **Mode Selector**: Toggle effortlessly between general **💬 Gemini Chat** and project-grounded **⚡ Gemini Cowork**.
+  - **Collapsible Project File Drawer**: Recursive file/folder tree view, search filtering, and quick path referencing.
+  - **Autonomous Coding Engine**: Local Ollama function calling to inspect files, propose targeted diffs, and run shell commands in the project directory.
+  - **Interactive Diff Review Modal**: Visual unified/side-by-side diff review (`diff2html`) with keyboard shortcuts (`Ctrl+Enter` to approve, `Esc` to reject).
+  - **Stdio MCP Host**: Connects to Model Context Protocol servers for Git, databases, and external tools.
 - **Flutter Cross-Platform Frontend (`frontend/`)**: Material 3 faithful Gemini interface with adaptive shell (mobile, tablet, desktop, web), dark/light modes, streaming chat, and voice visualizer dialogs.
-- **Tauri v2 Agentic Desktop Client (`desktop/`)**: Native Rust agent core with local Ollama (`qwen2.5-coder`, `llama3.1`), 3-tier security sandbox, interactive diff approval modal (`diff2html`), and stdio Model Context Protocol (MCP) support.
 
 ---
 
@@ -16,7 +21,9 @@ An open-source Google Gemini clone featuring a Flutter multi-platform UI and a d
 ```
 .
 ├── desktop/                # Tauri v2 + React 19 + TypeScript + Native Rust Core
-│   ├── src/                # Gemini UI (Tailwind CSS v4, Zustand, DiffReviewModal)
+│   ├── src/
+│   │   ├── components/     # ProjectFileDrawer, DiffReviewModal, PromptBar, ChatArea, Sidebar
+│   │   └── store/          # Zustand store (activeMode, fileDrawer, projectTree, messages)
 │   └── src-tauri/          # Native Rust Engine (SandboxGuard, ProcessRunner, McpClient)
 ├── frontend/               # Google Gemini Flutter UI Client (Android, iOS, Web, Windows)
 │   ├── lib/
@@ -29,7 +36,7 @@ An open-source Google Gemini clone featuring a Flutter multi-platform UI and a d
 
 ## 🚀 Quick Start
 
-### Gemini Desktop (Tauri v2 + Rust)
+### Gemini Desktop with Cowork (Tauri v2 + Rust)
 
 Prerequisites:
 - [Node.js](https://nodejs.org/) (v18+)

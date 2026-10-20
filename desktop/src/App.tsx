@@ -1,10 +1,14 @@
 import { AppHeader } from "./components/AppHeader";
 import { WorkspaceBar } from "./components/WorkspaceBar";
 import { Sidebar } from "./components/Sidebar";
+import { ProjectFileDrawer } from "./components/ProjectFileDrawer";
 import { ChatArea } from "./components/ChatArea";
 import { DiffReviewModal } from "./components/DiffReviewModal";
+import { useChatStore } from "./store/chatStore";
 
 export default function App() {
+  const { activeMode, fileDrawerOpen } = useChatStore();
+
   return (
     <div
       style={{
@@ -17,18 +21,21 @@ export default function App() {
         fontFamily: "'Google Sans', 'Roboto', sans-serif",
       }}
     >
-      {/* Top header bar */}
+      {/* Top application bar */}
       <AppHeader />
 
       {/* Workspace path bar */}
       <WorkspaceBar />
 
-      {/* Main content area: sidebar + chat */}
+      {/* Main content area: Sidebar + Project Drawer + Chat Feed */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-        {/* Left sidebar */}
+        {/* Main navigation sidebar */}
         <Sidebar />
 
-        {/* Chat content area */}
+        {/* Collapsible Project File Drawer for Cowork Mode */}
+        {activeMode === "cowork" && fileDrawerOpen && <ProjectFileDrawer />}
+
+        {/* Chat / Agent workspace */}
         <main
           style={{
             flex: 1,
@@ -42,7 +49,7 @@ export default function App() {
         </main>
       </div>
 
-      {/* Diff and command human-in-the-loop modal */}
+      {/* Interactive Human-In-The-Loop Diff & Command Review Modal */}
       <DiffReviewModal />
     </div>
   );
