@@ -1,0 +1,19 @@
+# Node
+node_modules/
+dist/
+
+# Rust
+**/target/
+
+# Flutter / Dart
+.dart_tool/
+**/build/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
